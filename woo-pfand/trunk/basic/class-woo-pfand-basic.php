@@ -125,11 +125,26 @@ class Woo_Pfand_Basic {
 
         $dep_total = 0;
         $tax = $tax_class = false;
+        $product_id = 2992; // hardcoded product id for garantie sgr
         $dep_quantity_total = 0;
 
-        foreach( WC()->cart->get_cart() as $cart_item ) {
+        // variables to track if the product is found in the cart
+        $found = false;
+        $cart_item_key_found = '';
+
+        foreach( WC()->cart->get_cart() as $cart_item_key => $cart_item ) {
             $dep_total = $dep_total + $this->get_deposit( $cart_item['product_id'], $cart_item['quantity'] );
-            $dep_quantity_total = $dep_quantity_total + $cart_item['quantity'];
+            $current_dep = $this->get_deposit( $cart_item['product_id'], $cart_item['quantity'] );
+
+            if( $current_dep > 0 && $cart_item['product_id'] != $product_id ) {
+                $dep_quantity_total = $dep_quantity_total + $cart_item['quantity'];
+            }
+
+            if( !$found && $cart_item['product_id'] == $product_id ) {
+                $found = true;
+                $cart_item_key_found = $cart_item_key;
+            }
+
 //             $deposit_item = $this->get_deposit( $cart_item['product_id'], $cart_item['quantity'] );
 //             if ( $deposit_item > 0 ) {
 //                 // concatenate 'Garanție SGR' with the product name
@@ -137,14 +152,35 @@ class Woo_Pfand_Basic {
 //             }
         }
 
-        $tax = apply_filters( 'add_deposit_value_to_totals', $tax );
-        $dep_total = apply_filters( 'dep_total_before_add_fee', $dep_total );
-        $tax_class = apply_filters( 'tax_class_before_add_fee', $tax_class );
+//         $tax = apply_filters( 'add_deposit_value_to_totals', $tax );
+//         $dep_total = apply_filters( 'dep_total_before_add_fee', $dep_total );
+//         $tax_class = apply_filters( 'tax_class_before_add_fee', $tax_class );
 
         if( $dep_quantity_total > 0 ) {
-            // hardcoded product id for garantie sgr
-            $woocommerce->cart->add_to_cart( '2992', $dep_quantity_total );
+            if (!$found) {
+//              echo '<pre>';
+//              print_r($found);
+//              echo '<br/>';
+//              print_r($cart_item_key_found);
+//              echo '</pre>';
+//              die('End of life');
+                $woocommerce->cart->add_to_cart( $product_id, $dep_quantity_total );
+            } else {
+//              echo '<pre>';
+//              print_r($found);
+//              echo '<br/>';
+//              print_r($cart_item_key_found);
+//              echo '<br/>';
+//              print_r($dep_quantity_total);
+//              echo '</pre>';
+//              die('End of life');
+                $woocommerce->cart->set_quantity( $cart_item_key_found, $dep_quantity_total, false );
+            }
+        } elseif( $found && $dep_quantity_total == 0 ) {
+            $woocommerce->cart->remove_cart_item( $cart_item_key_found );
         }
+
+        return;
 
 //         if( $dep_total > 0 )
 //             $woocommerce->cart->add_fee( __( 'Deposit Total', $this->woo_pfand ), $dep_total, $tax, $tax_class );
