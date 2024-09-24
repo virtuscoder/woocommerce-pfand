@@ -70,14 +70,16 @@ class Woo_Pfand_Basic {
         if( ! $this->display_deposit() )
             return $price_display_suffix;
 
-        $dep_total = $this->get_deposit( $product->get_id() );
+        $dep_total = $this->get_deposit( $product->id );
 
         if( ! empty( $dep_total ) ) {
 
             $price_display_suffix = preg_replace( '/<\/small>/', '', $price_display_suffix, 1 ); // removes </small>
 
             $price_display_suffix .= '<br />';
+			$price_display_suffix .= '<span class="small-deposit-important">';
             $price_display_suffix .= sprintf( __( 'plus deposit of %s', $this->woo_pfand ), wc_price( $dep_total ) );
+			$price_display_suffix .= '</span>';
 
             $price_display_suffix .= '</small>';
 
@@ -123,16 +125,29 @@ class Woo_Pfand_Basic {
 
         $dep_total = 0;
         $tax = $tax_class = false;
+        $dep_quantity_total = 0;
 
-        foreach( WC()->cart->get_cart() as $cart_item )
+        foreach( WC()->cart->get_cart() as $cart_item ) {
             $dep_total = $dep_total + $this->get_deposit( $cart_item['product_id'], $cart_item['quantity'] );
+            $dep_quantity_total = $dep_quantity_total + $cart_item['quantity'];
+//             $deposit_item = $this->get_deposit( $cart_item['product_id'], $cart_item['quantity'] );
+//             if ( $deposit_item > 0 ) {
+//                 // concatenate 'Garanție SGR' with the product name
+//                 $woocommerce->cart->add_fee( 'Garanție SGR ' . $cart_item['quantity'] . 'x ' . $cart_item['data']->get_name(), $deposit_item, $tax, $tax_class );
+//             }
+        }
 
         $tax = apply_filters( 'add_deposit_value_to_totals', $tax );
         $dep_total = apply_filters( 'dep_total_before_add_fee', $dep_total );
         $tax_class = apply_filters( 'tax_class_before_add_fee', $tax_class );
 
-        if( $dep_total > 0 )
-            $woocommerce->cart->add_fee( __( 'Deposit Total', $this->woo_pfand ), $dep_total, $tax, $tax_class );
+        if( $dep_quantity_total > 0 ) {
+            // hardcoded product id for garantie sgr
+            $woocommerce->cart->add_to_cart( '2992', $dep_quantity_total );
+        }
+
+//         if( $dep_total > 0 )
+//             $woocommerce->cart->add_fee( __( 'Deposit Total', $this->woo_pfand ), $dep_total, $tax, $tax_class );
 
     }
 
